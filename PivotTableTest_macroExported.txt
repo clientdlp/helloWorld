@@ -1,0 +1,77 @@
+Attribute VB_Name = "Module1"
+Sub ManipulatePivotDate()
+
+    A_GetDateRange
+    B_GetData
+    C_EnterDataIntoAnalysisTable
+
+
+End Sub
+
+Sub A_GetDateRange()
+
+    Dim masterWb As Workbook
+    Dim pivotWs As Worksheet
+    Dim statWs As Worksheet
+    Dim pt As PivotTable
+    Dim rng As Range
+    Dim dateCnt As Integer
+    Dim clientCnt As Integer
+    
+    Dim dateArr As String
+    Dim dateVar As Variant
+    Dim clientsVar As Variant
+    Dim eventVar As Variant
+    
+    Set masterWb = ActiveWorkbook
+    Set pivotWs = masterWb.Sheets(2)
+    Set statWs = masterWb.Sheets(3)
+    
+    Set pt = pivotWs.PivotTables(1)
+    
+    'PivotField DataRange - dateRange
+    pivotWs.Activate
+    pt.PivotFields("Sent").DataRange.Select
+    Set rng = pt.PivotFields("Sent").DataRange
+    dateVar = pt.PivotFields("Sent").DataRange.Value
+    dateCnt = pt.PivotFields("Sent").DataRange.Count
+    
+    'PivotField DataRange - Client List
+    pt.PivotFields("Policy").DataRange.Select
+    clientsVar = pt.PivotFields("Policy").DataRange.Value
+    clientCnt = pt.PivotFields("Policy").DataRange.Count
+    
+    'DataBodyRange - Events
+    pt.DataBodyRange.Select
+    eventVar = pt.DataBodyRange
+    
+    Call AddColumnsToStatTable(statWs, dateCnt, dateVar, clientsVar, eventVar)
+    
+End Sub
+Sub AddColumnsToStatTable(statWs As Worksheet, cnt As Integer, dates, clients, eventVar)
+
+    Dim mainCol As Integer
+    Dim pos As Integer
+    Dim lastRow As Long
+    Dim i As Long
+    Dim clientStatArr As Variant
+    
+    'Insert Columns
+    statWs.Activate
+    mainCol = 5
+    statWs.Range(Cells(1, mainCol), Cells(1, mainCol + cnt - 1)).EntireColumn.Insert
+    
+    'Insert Dates
+    Range(Cells(1, mainCol), Cells(1, mainCol + cnt - 1)) = dates
+    
+    lastRow = statWs.Range("A" & statWs.Rows.Count).End(xlUp).Row
+    clientStatArr = Range("B2:B" & lastRow).Value
+    
+    For i = LBound(clientStatArr, 1) To UBound(clientStatArr, 1)
+        pos = Application.Match(clientStatArr(i, 1), clients, False)
+        Range(Cells(2 + i - 1, mainCol), Cells(2 + i - 1, mainCol + cnt - 1)) = Application.WorksheetFunction.Index(eventVar, pos, 0)
+    Next i
+    
+
+End Sub
+
